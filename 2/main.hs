@@ -1,6 +1,6 @@
 import Data.Char (isSpace, toLower)
 import Data.List (dropWhileEnd, isSuffixOf)
-import Data.Map (Map, findWithDefault, fromList, keys)
+import Data.Map (Map, elems, empty, findWithDefault, fromList, keys, unionWith)
 import Data.Maybe (mapMaybe)
 import Debug.Trace (trace)
 import GHC.IO (unsafePerformIO)
@@ -12,6 +12,15 @@ import GHC.IO (unsafePerformIO)
 --     Compare num dice vs constraints
 --     If num dice per category < constraints
 --       Game id sum + Game id
+
+-- PROBLEM 2
+-- Game dice prod = []
+-- For each game
+--   Min num dice = {0, 0, 0}
+--   For each round
+--     Min num dice[color] = max(Min num dice[color], round[color])
+--   Game dice prod += [prod Min num dice]
+-- sum Game dice prod
 
 data Color = Red | Green | Blue deriving (Read, Show, Enum, Eq, Ord)
 
@@ -59,6 +68,8 @@ parseRound round = do
   let counts = mapMaybe computeDieCount dice
   fromList counts
 
+-- Problem 1
+
 evaluateRound :: NumDice -> NumDice -> Bool
 evaluateRound constraint round = do
   let getOrZero m color = findWithDefault 0 color m
@@ -74,6 +85,16 @@ evaluateGame constraint content = do
     then computeGameId content
     else 0
 
+-- Problem 2
+
+minDiceForGame :: String -> NumDice
+minDiceForGame str = do
+  let trimmed = trim str
+  let rounds_str = splitBy ';' (last (splitBy ':' trimmed))
+  let rounds = map parseRound rounds_str
+  let combine = unionWith max
+  foldr combine empty rounds
+
 -- Boilerplate
 
 solution1 :: NumDice -> [String] -> Integer
@@ -83,11 +104,11 @@ solution1 constraint content = do
 
 solution2 :: [String] -> Integer
 solution2 content = do
-  0
+  sum (map (product . elems . minDiceForGame) content)
 
 example1 :: IO ()
 example1 = do
-  let content = unsafePerformIO . readFile $ "example1.txt"
+  let content = unsafePerformIO . readFile $ "example.txt"
   putStrLn "Example 1:"
   print (solution1 constraint1 (lines content))
 
@@ -99,7 +120,7 @@ input1 = do
 
 example2 :: IO ()
 example2 = do
-  let content = unsafePerformIO . readFile $ "example2.txt"
+  let content = unsafePerformIO . readFile $ "example.txt"
   putStrLn "Example 2:"
   print (solution2 (lines content))
 
