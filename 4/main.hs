@@ -24,24 +24,53 @@ trim = dropWhileEnd isSpace . dropWhile isSpace
 -- Compute 2^(N-1) for each card
 -- Sum the values
 
+-- Problem 2
+-- Let K be the number of card
+-- Let multipliers = [1] * K
+-- For each card L
+--   Create a set of the winning numbers
+--   Create a set of the numbers for the card
+--   Get the union of the two sets
+--   Let N be the cardinality of the set
+--   Let M = N * multipliers[L]
+--   Add M to the next N multipliers 
+-- sum multipliers
+
 getNumbers :: String -> [Integer]
 getNumbers str = do
     map read (filter (not . null) (splitBy ' ' (trim str)))
+
+safeTail :: [a] -> [a]
+safeTail = drop 1
+
+
+
+countMatchingNumbers :: String -> Integer
+countMatchingNumbers str = do
+    let winning_numbers = getNumbers (last (splitBy ':' (head (splitBy '|' (trim str)))))
+    let card_numbers = getNumbers (last (splitBy '|' (trim str)))
+    toInteger (length (winning_numbers `intersect` card_numbers))
+
+computeWonCards :: [String] -> [Integer] -> [Integer]
+computeWonCards strs multipliers = do
+    let card_score = countMatchingNumbers (head strs)
+    let added_values = replicate (fromInteger card_score) (head multipliers)
+    let updated_multipliers = zipWith (+) added_values (tail multipliers)
+    let new_multipliers = updated_multipliers ++ drop (length updated_multipliers + 1) multipliers
+    if not (null strs)
+        then head multipliers : computeWonCards (tail strs) new_multipliers
+        else []
 
 -- Boilerplate
 
 solution1 :: [String] -> Integer
 solution1 strs = do
-    let winning_numbers str = getNumbers (last (splitBy ':' (head (splitBy '|' (trim str)))))
-    let card_numbers str = getNumbers (last (splitBy '|' (trim str)))
-    let all_winning_nums = map winning_numbers strs
-    let all_card_nums = map card_numbers strs
-    let matching_numbers = zipWith intersect all_winning_nums all_card_nums
-    sum (map ((\x -> 2^(x-1)) . length) (filter (not . null) matching_numbers))
+    sum (map (\x -> 2^(x-1)) (filter (> 0) (map countMatchingNumbers strs)))
 
 solution2 :: [String] -> Integer
 solution2 strs = do
-  0
+    let multipliers = replicate (length strs) 1
+    sum (computeWonCards strs multipliers)
 
 example1 :: IO ()
 example1 = do
